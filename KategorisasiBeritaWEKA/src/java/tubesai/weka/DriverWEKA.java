@@ -18,6 +18,7 @@ import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.bayes.NaiveBayesMultinomial;
 import weka.classifiers.functions.SMO;
+import weka.core.Attribute;
 import weka.core.Instances;
 import weka.core.converters.CSVSaver;
 import weka.core.converters.ConverterUtils.DataSource;
@@ -47,7 +48,7 @@ public class DriverWEKA {
     private final Instances data;
     private Instances datafilter;
     private final NominalToString nos;
-    private StringToWordVector swv;
+    private final StringToWordVector swv;
     private final WordTokenizer wt;
     private MultiFilter mfilter;
     private Part part1;
@@ -56,10 +57,10 @@ public class DriverWEKA {
     private Classifier cls;
     private String algoSelection;
     private String outputText;
-    private final static String[] saveclf = {"bayes","smo"};
     private boolean is_eval;
     private final String homepath;
-
+    private Instances labeled;
+    
     public boolean isIs_eval() {
         return is_eval;
     }
@@ -140,14 +141,15 @@ public class DriverWEKA {
         algoList.add("SMO");
         outputText = "";
         homepath = "C:\\Users\\Asus\\Documents\\NetBeansProjects\\KategorisasiBeritaWEKA\\src\\java\\tubesai\\weka\\";
+        File file = new File(homepath + "stopwords.txt");
+        swv.setStopwords(file);
     }
 //    public File setStopwordsFile(String f)
 //    {
 //        
 //    }
-    public void DBtoModel(boolean is_eval) throws Exception {
-        File file = new File(homepath + "stopwords.txt");
-        swv.setStopwords(file);
+    public void DBtoModel() throws Exception {
+        
         Filter[] mf= {(Filter)nos,(Filter)swv};
         mfilter = new MultiFilter();
         mfilter.setFilters(mf);
@@ -167,7 +169,7 @@ public class DriverWEKA {
         {
             Evaluation eval;
             eval = new Evaluation(datafilter);
-            eval.crossValidateModel(cls, data, 10, new Random(1));
+            eval.crossValidateModel(cls, datafilter, 10, new Random(1));
             outputText += "Model" + System.lineSeparator() + cls.toString()
                     + eval.toSummaryString("Results", false)+ eval.toClassDetailsString()
                     + eval.toMatrixString();
@@ -181,21 +183,33 @@ public class DriverWEKA {
         if (unlabeled.classIndex() == -1)
             unlabeled.setClassIndex(unlabeled.numAttributes() - 1);
         Instances unlabeledf = Filter.useFilter(unlabeled, swv);
-        Instances labeled = new Instances(unlabeled);
+        labeled = new Instances(unlabeled);
         for (int i = 0; i < unlabeled.numInstances(); i++) {
             double clsLabel = cls.classifyInstance(unlabeledf.instance(i));
             labeled.instance(i).setClassValue(clsLabel);
         }
-        labeled.deleteAttributeAt(1);
+        Instances tocsv = new Instances(labeled);
+        tocsv.deleteAttributeAt(1);
+        tocsv.deleteAttributeAt(0);
+        Attribute at = new Attribute("ID");
+        tocsv.insertAttributeAt(at, 0);
+        for (int i = 0; i < unlabeled.numInstances(); i++)
+            tocsv.instance(i).setValue(0, i);
         CSVSaver saver = new CSVSaver();
         File save = new File(homepath + "labeled.csv");
-        saver.setInstances(labeled);
+        saver.setInstances(tocsv);
         saver.setFile(save);
-        saver.setUseRelativePath(false);
+        saver.setUseRelativePath(true);
         saver.writeBatch();
         outputText = "";
-        for (int i = 0; i < unlabeled.numInstances(); i++){
-            outputText += i + ". " + labeled.instance(i).stringValue(labeled.classIndex()) + "\n";
-        }
+//        for (int i = 0; i < unlabeled.numInstances(); i++){
+//            outputText += i + ". " + labeled.instance(i).stringValue(labeled.classIndex()) + "\n";
+//        }
     }
+    
+    public void TrainDatabase() throws Exception{
+        
+    }
+    
+    
 }

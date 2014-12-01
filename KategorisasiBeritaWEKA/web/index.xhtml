@@ -7,16 +7,17 @@
         <title>WEKA News Categorizer</title>
     </h:head>
     <h:body>
+        <f:view>
         <h:outputText value="Build Catagorizer Model from Database"/>
         <h:form id="formdb" enctype="multipart/form-data">
             <!--<h:inputFile id="stopwordtext" value="#{Driver.part1}" required="true"/>-->
             <h:selectOneRadio value="#{Driver.algoSelection}">
                 <f:selectItems value="#{Driver.algoList}"/>
             </h:selectOneRadio>
-            <h:selectBooleanCheckbox value="#{Driver.is_eval}" />
+            <h:selectBooleanCheckbox  value="#{Driver.is_eval}" />
             <h:outputText value="Evaluate" />
             <h:commandButton id="submitform1" title="Create Model" value="Build Model" 
-                             action="#{Driver.DBtoModel(is_eval)}"/>
+                             action="#{Driver.DBtoModel()}"/>
         </h:form>
         <br></br>
         <h:outputText value="News Categorizer" />
@@ -27,7 +28,11 @@
                              action="#{Driver.Categorize()}" />
         </h:form>
         <br></br>
-            <h:outputText value="#{Driver.outputText}" />
+        <h:outputLabel value="#{Driver.outputText}" />
+        <h:form id="trainmodel">
+            
+        </h:form>
+        </f:view>
     </h:body>
 </html>
 
