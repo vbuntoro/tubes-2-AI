@@ -28,9 +28,29 @@
                              action="#{Driver.Categorize()}" />
         </h:form>
         <br></br>
+        <h:form>
+            <h:dataTable value="#{Driver.testlist}" var="item">
+                <h:column>
+                    <f:facet name="header">Title</f:facet>
+                    #{item.judul}
+                </h:column>
+                <h:column>
+                    <f:facet name="header">Kategori</f:facet>
+                    #{item.label}
+                </h:column>
+                <h:column>
+                    <f:facet name="header">Ubah Kategori</f:facet>
+                    <h:selectOneMenu value="#{item.label_change}">
+                        <f:selectItems value="#{Driver.labellist}" itemValue="#{item.label}" />
+                    </h:selectOneMenu>
+                </h:column>
+            </h:dataTable>
+            <h:commandButton id="submitform3" title="Update" value="Update" 
+                             action="#{Driver.TrainDatabase()}" />
+        </h:form>
+
         <h:outputLabel value="#{Driver.outputText}" />
         <h:form id="trainmodel">
-            
         </h:form>
         </f:view>
     </h:body>

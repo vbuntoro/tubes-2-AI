@@ -6,8 +6,11 @@
 package tubesai.weka;
 
 import com.mysql.jdbc.Driver;
+import java.sql.Connection;
 import java.io.File;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -53,13 +56,28 @@ public class DriverWEKA {
     private MultiFilter mfilter;
     private Part part1;
     private Part part2;
-    private final List<String> algoList;
+    private final ArrayList<String> algoList;
     private Classifier cls;
     private String algoSelection;
     private String outputText;
     private boolean is_eval;
     private final String homepath;
     private Instances labeled;
+    private ArrayList<ClassifiedData> testlist;
+    private final String[] labellist = {"Pendidikan","Politik","Hukum dan Kriminal","Sosial Budaya","Olahraga"
+        ,"Teknologi dan Sains","Hiburan","Bisnis dan Ekonomi","Kesehatan","Bencana dan Kecelakaan"};
+
+    public String[] getLabellist() {
+        return labellist;
+    }
+    
+    public ArrayList<ClassifiedData> getTestlist() {
+        return testlist;
+    }
+
+    public void setTestlist(ArrayList<ClassifiedData> testlist) {
+        this.testlist = testlist;
+    }
     
     public boolean isIs_eval() {
         return is_eval;
@@ -188,12 +206,23 @@ public class DriverWEKA {
             double clsLabel = cls.classifyInstance(unlabeledf.instance(i));
             labeled.instance(i).setClassValue(clsLabel);
         }
+        SavetoCSV();
+        AddtoList();
+        outputText = "";
+//        for (int i = 0; i < unlabeled.numInstances(); i++){
+//            outputText += i + ". " + labeled.instance(i).stringValue(labeled.classIndex()) + "\n";
+//        }
+    }
+    
+    private void SavetoCSV() throws Exception
+    {
         Instances tocsv = new Instances(labeled);
+        tocsv.deleteAttributeAt(2);
         tocsv.deleteAttributeAt(1);
         tocsv.deleteAttributeAt(0);
         Attribute at = new Attribute("ID");
         tocsv.insertAttributeAt(at, 0);
-        for (int i = 0; i < unlabeled.numInstances(); i++)
+        for (int i = 0; i < labeled.numInstances(); i++)
             tocsv.instance(i).setValue(0, i);
         CSVSaver saver = new CSVSaver();
         File save = new File(homepath + "labeled.csv");
@@ -201,13 +230,104 @@ public class DriverWEKA {
         saver.setFile(save);
         saver.setUseRelativePath(true);
         saver.writeBatch();
-        outputText = "";
-//        for (int i = 0; i < unlabeled.numInstances(); i++){
-//            outputText += i + ". " + labeled.instance(i).stringValue(labeled.classIndex()) + "\n";
-//        }
+    }
+    
+    private void AddtoList() throws Exception
+    {
+        testlist = new ArrayList<>();
+        for (int i = 0; i < labeled.numInstances(); i++)
+        {
+            ClassifiedData cd = new ClassifiedData();
+            
+            cd.setJudul(labeled.instance(i).stringValue(0));
+            cd.setFull_text(labeled.instance(i).stringValue(1));
+            cd.setLabel(labeled.instance(i).stringValue(3));
+            cd.setUrl(labeled.instance(i).stringValue(2));
+            
+            testlist.add(cd);
+        }
     }
     
     public void TrainDatabase() throws Exception{
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/news_aggregator","root", "");
+        for(ClassifiedData cd : testlist)
+        {
+            if(cd.Changed())
+            {
+                String query1 = "INSERT INTO artikel('JUDUL','FULL_TEXT','URL') VALUES('" +
+                                cd.judul + "','" + cd.full_text + "','" +
+                                cd.url +"');";
+                String query2 = "SELECT ID_ARTIKEL FROM artikel WHERE FULL_TEXT='" + cd.full_text +"';";
+                Statement stmt = c.createStatement();
+                stmt.executeUpdate(query1);
+                ResultSet rs = stmt.executeQuery(query2);
+                int ret = rs.getInt("ID_ARTIKEL");
+                String query3 = "INSERT INTO artikel_kategori_verified VALUES ('" +
+                                ret +"','" + cd.label_change+"');";
+                stmt.executeUpdate(query3);
+            }
+        }
+        c.close();
+    }
+    
+    public class ClassifiedData
+    {
+        String judul;
+        String full_text;
+        String label;
+        String label_change;
+        String url;
+
+        public String getLabel_change() {
+            return label_change;
+        }
+
+        public void setLabel_change(String label_change) {
+            this.label_change = label_change;
+        }
+
+        public ClassifiedData() {
+           
+        }
+
+        public String getJudul() {
+            return judul;
+        }
+
+        public void setJudul(String judul) {
+            this.judul = judul;
+        }
+
+        public String getFull_text() {
+            return full_text;
+        }
+
+        public void setFull_text(String full_text) {
+            this.full_text = full_text;
+        }
+
+        public String getLabel() {
+            return label;
+        }
+
+        public void setLabel(String label) {
+            this.label = label;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
+        
+        public boolean Changed()
+        {
+            return !label.equals(label_change);
+        }
+        
         
     }
     
